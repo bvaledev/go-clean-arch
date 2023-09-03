@@ -16,5 +16,5 @@ type Mutation {
 }
 
 type Query {
-    orders: [Order!]!
+    listOrders: [Order!]!
 }
