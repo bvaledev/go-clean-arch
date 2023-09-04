@@ -21,6 +21,9 @@ import (
 
 	// mysql
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
@@ -29,11 +32,27 @@ func main() {
 		panic(err)
 	}
 
-	db, err := sql.Open(configs.DBDriver, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", configs.DBUser, configs.DBPassword, configs.DBHost, configs.DBPort, configs.DBName))
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", configs.DBUser, configs.DBPassword, configs.DBHost, configs.DBPort, configs.DBName)
+	db, err := sql.Open(configs.DBDriver, connectionString)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		panic(err)
+	}
+	defer driver.Close()
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://sql/migrations",
+		"mysql", driver)
+	if err != nil {
+		println(err)
+		panic(err)
+	}
+	defer m.Close()
+	m.Up()
 
 	rabbitMQChannel := getRabbitMQChannel()
 
